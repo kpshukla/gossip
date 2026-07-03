@@ -122,6 +122,36 @@ pub(super) fn update(
 
             btn_h_space!(ui);
 
+            {
+                let stale_pubkeys: Vec<nostr_types::PublicKey> = app
+                    .people_list
+                    .cache_people
+                    .iter()
+                    .filter(|(person, _)| {
+                        !matches!(
+                            People::person_needs_relay_list(person.pubkey),
+                            Freshness::Fresh
+                        )
+                    })
+                    .map(|(person, _)| person.pubkey)
+                    .collect();
+
+                if !stale_pubkeys.is_empty() {
+                    if widgets::Button::primary(
+                        &app.theme,
+                        format!("Fetch All Relay Lists ({})", stale_pubkeys.len()),
+                    )
+                    .show(ui)
+                    .clicked()
+                    {
+                        let _ = GLOBALS.to_overlord.send(
+                            ToOverlordMessage::SubscribeDiscover(stale_pubkeys, None),
+                        );
+                    }
+                    btn_h_space!(ui);
+                }
+            }
+
             if widgets::Button::primary(&app.theme, "View the Feed")
                 .show(ui)
                 .clicked()
