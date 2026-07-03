@@ -9,7 +9,6 @@ use gossip_lib::GLOBALS;
 pub(super) fn update(app: &mut GossipUi, _ctx: &Context, _frame: &mut eframe::Frame, ui: &mut Ui) {
     let is_editing = app.relays.edit.is_some();
     // TBD time how long this takes. We don't want expensive code in the UI
-    // FIXME keep more relay info and display it
     let relays = if !is_editing {
         // clear edit cache if present
         if !app.relays.edit_relays.is_empty() {

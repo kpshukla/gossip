@@ -758,13 +758,55 @@ impl RelayEntry {
                 }
             }
             let pos = pos + vec2(0.0, NIP11_Y_SPACING);
-            if !doc.supported_nips.is_empty() {
-                let mut text = "NIPS: ".to_string();
-                for nip in &doc.supported_nips {
-                    text.push_str(format!(" {},", *nip).as_str());
+            if !doc.supported_nips.is_empty() || doc.software.is_some() || doc.version.is_some() {
+                let mut text = String::new();
+                if !doc.supported_nips.is_empty() {
+                    text.push_str("NIPS: ");
+                    for nip in &doc.supported_nips {
+                        text.push_str(format!(" {},", *nip).as_str());
+                    }
+                    text.truncate(text.len() - 1); // safe because we built the string
                 }
-                text.truncate(text.len() - 1); // safe because we built the string
-                draw_text_at(ui, pos, text.into(), align, None, None);
+                if doc.software.is_some() || doc.version.is_some() {
+                    if !text.is_empty() {
+                        text.push_str("   ");
+                    }
+                    if let Some(software) = &doc.software {
+                        text.push_str(software);
+                    }
+                    if let Some(version) = &doc.version {
+                        if doc.software.is_some() {
+                            text.push(' ');
+                        }
+                        text.push_str(&format!("v{}", version));
+                    }
+                }
+                let rect = draw_text_at(ui, pos, text.into(), align, None, None);
+
+                // Limitation flags (auth/payment/writes/max-message-length) shown as a
+                // hover tooltip on this row rather than extra rows, since the detail
+                // view has a fixed height with the permission switches starting right
+                // below this section.
+                if let Some(limitation) = &doc.limitation {
+                    let mut flags: Vec<String> = Vec::new();
+                    if limitation.auth_required == Some(true) {
+                        flags.push("Auth required".to_string());
+                    }
+                    if limitation.payment_required == Some(true) {
+                        flags.push("Payment required".to_string());
+                    }
+                    if limitation.restricted_writes == Some(true) {
+                        flags.push("Restricted writes".to_string());
+                    }
+                    if let Some(mml) = limitation.max_message_length {
+                        flags.push(format!("Max message length: {} bytes", mml));
+                    }
+                    if !flags.is_empty() {
+                        let hover_text = flags.join("\n");
+                        ui.interact(rect, self.make_id("nip11_limits"), Sense::hover())
+                            .on_hover_text(hover_text);
+                    }
+                }
             }
 
             if let Some(entry) = GLOBALS.relay_tests.get(&self.relay.url) {
