@@ -32,6 +32,21 @@ pub struct Profile {
     tmp_cache_dir: TempDir,
 }
 
+/// Restrict a directory to owner-only access (rwx------), since gossip's
+/// data directories contain plaintext DMs, contact lists, and the
+/// passphrase-encrypted private key. No-op on non-unix platforms, where
+/// the user's data directory is already scoped to their account by the OS.
+#[cfg(unix)]
+fn restrict_dir_permissions(dir: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(dir, fs::Permissions::from_mode(0o700))
+}
+
+#[cfg(not(unix))]
+fn restrict_dir_permissions(_dir: &Path) -> std::io::Result<()> {
+    Ok(())
+}
+
 impl Profile {
     fn new() -> Result<Profile, Error> {
         if cfg!(feature = "appimage") {
@@ -144,6 +159,19 @@ impl Profile {
             );
             Error::from(format!("Failed to create LMDB directory: {}", e))
         })?;
+
+        // Restrict these directories to the owner only, since they hold private
+        // keys, DMs, and other sensitive data in plaintext or locally-encrypted form.
+        for dir in [&base_dir, &cache_dir, &profile_dir, &lmdb_dir] {
+            restrict_dir_permissions(dir).map_err(|e| {
+                eprintln!(
+                    "Error restricting permissions on directory ({}): {}",
+                    dir.display(),
+                    e
+                );
+                Error::from(format!("Failed to restrict directory permissions: {}", e))
+            })?;
+        }
 
         let tmp_cache_dir = TempDir::new("cache")?;
 
