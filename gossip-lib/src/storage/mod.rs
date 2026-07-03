@@ -253,6 +253,7 @@ impl Storage {
         self.db_hashtags()?;
         self.db_nip46servers()?;
         self.db_person_relays()?;
+        self.db_person_pinned_relays1()?;
         self.db_relationships_by_id()?;
         self.db_relationships_by_addr()?;
         self.db_relays()?;
