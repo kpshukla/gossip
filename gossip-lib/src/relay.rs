@@ -230,6 +230,24 @@ pub fn get_best_relays_with_score(
         .filter(|pr| !crate::storage::Storage::url_is_banned(&pr.url))
         .collect();
 
+    // Pinned relays are guaranteed to be considered for this person (treated as
+    // though explicitly declared for read+write), even if they are missing from
+    // (or outdated in) the person's published relay list.
+    for url in GLOBALS.db().get_person_pinned_relays(pubkey)?.drain(..) {
+        if crate::storage::Storage::url_is_banned(&url) {
+            continue;
+        }
+        if let Some(pr) = person_relays.iter_mut().find(|pr| pr.url == url) {
+            pr.read = true;
+            pr.write = true;
+        } else {
+            let mut pr = PersonRelay::new(pubkey, url);
+            pr.read = true;
+            pr.write = true;
+            person_relays.push(pr);
+        }
+    }
+
     let mut strong: Vec<(RelayUrl, f32)> = Vec::new();
     let mut weak: Vec<(RelayUrl, f32)> = Vec::new();
 

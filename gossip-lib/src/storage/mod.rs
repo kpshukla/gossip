@@ -44,6 +44,7 @@ mod nip46servers2;
 mod people2;
 mod person_lists2;
 mod person_lists_metadata3;
+mod person_pinned_relays1;
 mod person_relays1;
 mod person_relays2;
 mod relationships_by_addr1;
