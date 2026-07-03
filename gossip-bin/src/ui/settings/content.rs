@@ -1,7 +1,7 @@
 use crate::ui::GossipUi;
 use eframe::egui;
 use egui::widgets::Slider;
-use egui::{Context, Ui};
+use egui::{Context, TextEdit, Ui};
 
 pub(super) fn update(app: &mut GossipUi, _ctx: &Context, _frame: &mut eframe::Frame, ui: &mut Ui) {
     ui.heading("Content");
@@ -160,6 +160,19 @@ pub(super) fn update(app: &mut GossipUi, _ctx: &Context, _frame: &mut eframe::Fr
                 "Your filter.rhai script (if it exists) will be run to filter out spam in the global feed",
             );
         reset_button!(app, ui, apply_spam_filter_on_global);
+    });
+
+    ui.add_space(10.0);
+
+    ui.horizontal(|ui| {
+        ui.label("Muted keywords: ")
+            .on_hover_text("Events (from people you don't follow) containing any of these keywords or phrases will be denied. Case-insensitive. One per line. Checked before your filter.rhai script, and subject to the same 'Apply spam filtering...' toggles above.");
+        ui.add(
+            TextEdit::multiline(&mut app.unsaved_settings.muted_keywords)
+                .desired_width(f32::INFINITY)
+                .desired_rows(3),
+        );
+        reset_button!(app, ui, muted_keywords);
     });
 
     ui.add_space(10.0);

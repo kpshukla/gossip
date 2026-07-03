@@ -70,9 +70,7 @@ pub fn filter_event(event: Event, caller: EventFilterCaller, spamsafe: bool) -> 
     let id = event.id;
     let pow = event.pow();
 
-    if GLOBALS.spam_filter.is_none() {
-        EventFilterAction::Allow
-    } else if event.kind == EventKind::GiftWrap {
+    if event.kind == EventKind::GiftWrap {
         // Spam filtering is NOT async and we cannot unwrap GiftWrap events using a
         // remote signer.  So we simply dont' apply spam filtering to GiftWraps
         // anymore.  FIXME Ww could post-apply it somehow outside of this function.
@@ -90,6 +88,20 @@ pub fn filter_event(event: Event, caller: EventFilterCaller, spamsafe: bool) -> 
         };
         inner_filter(event_params)
     }
+}
+
+/// Cheap keyword check, run ahead of the (optional) Rhai script so that
+/// keyword muting works even for users who haven't written a filter.rhai.
+fn content_matches_muted_keyword(content: &str) -> bool {
+    let raw = GLOBALS.db().read_setting_muted_keywords();
+    if raw.trim().is_empty() {
+        return false;
+    }
+    let content_lower = content.to_lowercase();
+    raw.lines()
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty())
+        .any(|keyword| content_lower.contains(&keyword.to_lowercase()))
 }
 
 fn inner_filter(event_params: EventParams) -> EventFilterAction {
@@ -118,6 +130,15 @@ fn inner_filter(event_params: EventParams) -> EventFilterAction {
         .people
         .is_person_in_list(&pubkey, PersonList::Followed)
     {
+        return EventFilterAction::Allow;
+    }
+
+    if content_matches_muted_keyword(&content) {
+        return EventFilterAction::Deny;
+    }
+
+    // If there is no spam filter script, we're done (keyword check already ran)
+    if GLOBALS.spam_filter.is_none() {
         return EventFilterAction::Allow;
     }
 
