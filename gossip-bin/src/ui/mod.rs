@@ -428,6 +428,24 @@ impl DraftData {
     }
 }
 
+/// Parse a newline-separated list of URLs (as persisted by the media_show_list /
+/// media_hide_list settings) back into a HashSet, silently dropping any that
+/// fail to parse (e.g. if a relay/CDN change ever makes one invalid).
+fn load_url_list(raw: String) -> HashSet<Url> {
+    raw.lines()
+        .filter_map(|line| Url::try_from_str(line.trim()).ok())
+        .collect()
+}
+
+/// Serialize a HashSet of URLs back into the newline-separated form used by
+/// the media_show_list / media_hide_list settings.
+fn save_url_list(urls: &HashSet<Url>) -> String {
+    urls.iter()
+        .map(|u| u.as_str())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 struct GossipUi {
     #[cfg(feature = "video-ffmpeg")]
     audio_device: Option<AudioDevice>,
@@ -792,8 +810,8 @@ impl GossipUi {
             avatars: HashMap::new(),
             images: HashMap::new(),
             blurs: HashMap::new(),
-            media_show_list: HashSet::new(),
-            media_hide_list: HashSet::new(),
+            media_show_list: load_url_list(GLOBALS.db().read_setting_media_show_list()),
+            media_hide_list: load_url_list(GLOBALS.db().read_setting_media_hide_list()),
             media_full_width_list: HashSet::new(),
             show_post_area: false,
             draft_needs_focus: false,
