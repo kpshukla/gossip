@@ -44,6 +44,7 @@ mod nip46servers2;
 mod people2;
 mod person_lists2;
 mod person_lists_metadata3;
+mod person_pinned_relays1;
 mod person_relays1;
 mod person_relays2;
 mod relationships_by_addr1;
@@ -252,6 +253,7 @@ impl Storage {
         self.db_hashtags()?;
         self.db_nip46servers()?;
         self.db_person_relays()?;
+        self.db_person_pinned_relays1()?;
         self.db_relationships_by_id()?;
         self.db_relationships_by_addr()?;
         self.db_relays()?;

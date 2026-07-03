@@ -480,6 +480,7 @@ struct GossipUi {
     // Person page rendering ('npub', 'nprofile', or 'lud06')
     person_qr: Option<&'static str>,
     setting_active_person: bool,
+    pin_relay_input: String,
 
     // Page
     page: Page,
@@ -770,6 +771,7 @@ impl GossipUi {
             feed_note_height: HashMap::new(),
             person_qr: None,
             setting_active_person: false,
+            pin_relay_input: "".to_owned(),
             page: start_page,
             history: vec![],
             submenu_ids,

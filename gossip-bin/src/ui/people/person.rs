@@ -485,6 +485,71 @@ fn content(app: &mut GossipUi, ctx: &Context, ui: &mut Ui, pubkey: PublicKey, pe
                         });
                     });
 
+                    // Pinned relays: always checked for this person even if missing
+                    // from (or stale in) their published relay list.
+                    make_frame().show(ui, |ui| {
+                        ui.vertical(|ui| {
+                            item_label(ui, "Pinned Relays");
+                            ui.add_space(ITEM_V_SPACE);
+
+                            let pinned = GLOBALS
+                                .db()
+                                .get_person_pinned_relays(pubkey)
+                                .unwrap_or_default();
+
+                            if pinned.is_empty() {
+                                ui.label("No relays pinned for this person.");
+                            } else {
+                                for relay_url in pinned.iter() {
+                                    ui.horizontal(|ui| {
+                                        if ui.link(relay_url.host()).clicked() {
+                                            app.set_page(
+                                                ctx,
+                                                Page::RelaysKnownNetwork(Some(relay_url.clone())),
+                                            );
+                                        }
+                                        if ui.small_button("Unpin").clicked() {
+                                            let _ = GLOBALS.db().unpin_person_relay(
+                                                pubkey,
+                                                relay_url,
+                                                None,
+                                            );
+                                            let _ = GLOBALS
+                                                .to_overlord
+                                                .send(ToOverlordMessage::RefreshScoresAndPickRelays);
+                                        }
+                                    });
+                                }
+                            }
+
+                            ui.add_space(ITEM_V_SPACE);
+                            ui.horizontal(|ui| {
+                                ui.add(
+                                    TextEdit::singleline(&mut app.pin_relay_input)
+                                        .hint_text("wss://relay.example.com")
+                                        .desired_width(250.0),
+                                );
+                                if ui.button("Pin").clicked() {
+                                    if let Ok(url) =
+                                        nostr_types::RelayUrl::try_from_str(&app.pin_relay_input)
+                                    {
+                                        let _ =
+                                            GLOBALS.db().pin_person_relay(pubkey, &url, None);
+                                        let _ = GLOBALS.to_overlord.send(
+                                            ToOverlordMessage::RefreshScoresAndPickRelays,
+                                        );
+                                        app.pin_relay_input.clear();
+                                    } else {
+                                        GLOBALS
+                                            .status_queue
+                                            .write()
+                                            .write("Not a valid relay URL".to_owned());
+                                    }
+                                }
+                            });
+                        });
+                    });
+
                     ui.add_space(10.0);
                 }
             }
