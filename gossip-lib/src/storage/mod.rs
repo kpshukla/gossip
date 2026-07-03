@@ -917,6 +917,8 @@ impl Storage {
     );
     def_setting!(blossom_servers, b"blossom_servers", String, "".to_string());
     def_setting!(undo_send_seconds, b"undo_send_seconds", u64, 10);
+    def_setting!(media_show_list, b"media_show_list", String, "".to_string());
+    def_setting!(media_hide_list, b"media_hide_list", String, "".to_string());
 
     // -------------------------------------------------------------------
 

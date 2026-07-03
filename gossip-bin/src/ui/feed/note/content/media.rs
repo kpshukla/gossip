@@ -44,6 +44,7 @@ pub fn show_image(
         if response.clicked() {
             app.media_hide_list.remove(&url);
             app.media_show_list.insert(url.clone());
+            persist_media_lists(app);
             if !read_setting!(load_media) {
                 GLOBALS.status_queue.write().write("Fetch Media setting is disabled. Right-click link to open in browser or copy URL".to_owned());
             }
@@ -100,6 +101,7 @@ pub fn show_video(
         if response.clicked() {
             app.media_hide_list.remove(&url);
             app.media_show_list.insert(url.clone());
+            persist_media_lists(app);
             if !read_setting!(load_media) {
                 GLOBALS.status_queue.write().write("Fetch Media setting is disabled. Right-click link to open in browser or copy URL".to_owned());
             }
@@ -313,11 +315,20 @@ fn try_render_video(
 
 // Should we show the media, or fall back to a link?
 fn show(app: &mut GossipUi, url: &Url, privacy_issue: bool) -> bool {
-    // FIXME show/hide lists should persist app restarts
     let show_media_setting = read_setting!(show_media);
     let overriding_hide = app.media_hide_list.contains(url);
     let overriding_show = app.media_show_list.contains(url);
     overriding_show || (show_media_setting && !overriding_hide && !privacy_issue)
+}
+
+// Persist the show/hide override lists so per-note choices survive app restarts
+fn persist_media_lists(app: &GossipUi) {
+    let _ = GLOBALS
+        .db()
+        .write_setting_media_show_list(&crate::ui::save_url_list(&app.media_show_list), None);
+    let _ = GLOBALS
+        .db()
+        .write_setting_media_hide_list(&crate::ui::save_url_list(&app.media_hide_list), None);
 }
 
 fn media_scale(show_full_width: bool, ui: &Ui, media_size: Vec2) -> Vec2 {
@@ -387,6 +398,7 @@ fn add_media_menu(app: &mut GossipUi, ui: &mut Ui, url: Url, response: &Response
                 {
                     app.media_hide_list.insert(url.clone());
                     app.media_show_list.remove(&url);
+                    persist_media_lists(app);
                 }
                 ui.add_space(SPACE);
                 if ui
