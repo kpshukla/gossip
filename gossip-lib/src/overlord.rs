@@ -751,6 +751,9 @@ impl Overlord {
             ToOverlordMessage::RefreshSubscribedMetadata => {
                 self.refresh_subscribed_metadata()?;
             }
+            ToOverlordMessage::Report(id, pubkey, report_type, content) => {
+                self.report(id, pubkey, &report_type, content).await?;
+            }
             ToOverlordMessage::Repost(id) => {
                 self.repost(id).await?;
             }
@@ -1951,6 +1954,71 @@ impl Overlord {
 
         // Process the message for ourself
         crate::process::process_new_event(&event, None, None, false, false).await?;
+
+        Ok(())
+    }
+
+    /// Report a post to relays and other clients, per NIP-56. The backend doesn't
+    /// read the event, so you have to supply the pubkey author too.
+    pub async fn report(
+        &mut self,
+        id: Id,
+        pubkey: PublicKey,
+        report_type: &str,
+        content: String,
+    ) -> Result<(), Error> {
+        let event = {
+            let public_key = match GLOBALS.identity.public_key() {
+                Some(pk) => pk,
+                None => {
+                    tracing::warn!("No public key! Not posting");
+                    return Ok(());
+                }
+            };
+
+            let mut tags: Vec<Tag> = vec![
+                Tag::new(&["e", &id.as_hex_string(), report_type]),
+                Tag::new(&["p", &pubkey.as_hex_string(), report_type]),
+            ];
+
+            if GLOBALS.db().read_setting_set_client_tag() {
+                tags.push(Tag::new(&["client", "gossip"]));
+            }
+
+            let pre_event = PreEvent {
+                pubkey: public_key,
+                created_at: Unixtime::now(),
+                kind: EventKind::Reporting,
+                tags,
+                content,
+            };
+
+            GLOBALS.identity.sign_event(pre_event).await?
+        };
+
+        let relay_urls: Vec<RelayUrl> = relay::relays_to_post_to(&event)?;
+        for url in &relay_urls {
+            tracing::debug!("Asking {} to post", url);
+        }
+
+        manager::run_jobs_on_all_relays(
+            relay_urls,
+            vec![RelayJob {
+                reason: RelayConnectionReason::PostLike,
+                payload: ToMinionPayload {
+                    job_id: rand::random::<u64>(),
+                    detail: ToMinionPayloadDetail::PostEvents(vec![event.clone()]),
+                },
+            }],
+        );
+
+        // Process the message for ourself
+        crate::process::process_new_event(&event, None, None, false, false).await?;
+
+        GLOBALS
+            .status_queue
+            .write()
+            .write("Report submitted.".to_owned());
 
         Ok(())
     }

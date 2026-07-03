@@ -168,6 +168,9 @@ pub enum ToOverlordMessage {
     /// Calls [reresh_subscribed_metadata](crate::Overlord::refresh_subscribed_metadata)
     RefreshSubscribedMetadata,
 
+    /// Calls [report](crate::Overlord::report)
+    Report(Id, PublicKey, String, String),
+
     /// Calls [repost](crate::Overlord::repost)
     Repost(Id),
 

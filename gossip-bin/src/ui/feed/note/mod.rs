@@ -1648,6 +1648,37 @@ fn note_actions(
         )));
     } // end Bookmark
 
+    // ---- Report (NIP-56) ----
+    if GLOBALS.identity.public_key() != Some(note.event.pubkey) {
+        let mut report_items: Vec<MoreMenuItem> = Vec::new();
+        for (label, report_type) in [
+            ("Spam", "spam"),
+            ("Nudity", "nudity"),
+            ("Profanity", "profanity"),
+            ("Illegal", "illegal"),
+            ("Impersonation", "impersonation"),
+            ("Malware", "malware"),
+            ("Other", "other"),
+        ] {
+            report_items.push(MoreMenuItem::Button(MoreMenuButton::new(
+                label,
+                Box::new(move |_, _| {
+                    let _ = GLOBALS.to_overlord.send(ToOverlordMessage::Report(
+                        note.event.id,
+                        note.event.pubkey,
+                        report_type.to_owned(),
+                        "".to_owned(),
+                    ));
+                }),
+            )));
+        }
+        items.push(MoreMenuItem::SubMenu(MoreMenuSubMenu::new(
+            "Report",
+            report_items,
+            &menu,
+        )));
+    } // end Report
+
     // ---- Open with ----
     if !note.event.kind.is_direct_message_related() {
         let mut my_items: Vec<MoreMenuItem> = Vec::new();
