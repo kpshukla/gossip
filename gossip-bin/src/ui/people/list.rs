@@ -122,6 +122,69 @@ pub(super) fn update(
 
             btn_h_space!(ui);
 
+            {
+                let stale_pubkeys: Vec<nostr_types::PublicKey> = app
+                    .people_list
+                    .cache_people
+                    .iter()
+                    .filter(|(person, _)| {
+                        !matches!(
+                            People::person_needs_relay_list(person.pubkey),
+                            Freshness::Fresh
+                        )
+                    })
+                    .map(|(person, _)| person.pubkey)
+                    .collect();
+
+                if !stale_pubkeys.is_empty() {
+                    if widgets::Button::primary(
+                        &app.theme,
+                        format!("Fetch All Relay Lists ({})", stale_pubkeys.len()),
+                    )
+                    .show(ui)
+                    .clicked()
+                    {
+                        let _ = GLOBALS.to_overlord.send(
+                            ToOverlordMessage::SubscribeDiscover(stale_pubkeys, None),
+                        );
+                    }
+                    btn_h_space!(ui);
+                }
+            }
+
+            {
+                let stale_metadata_pubkeys: Vec<nostr_types::PublicKey> = {
+                    let stale = Duration::from_secs(
+                        60 * GLOBALS.db().read_setting_metadata_becomes_stale_minutes(),
+                    );
+                    let now = Unixtime::now();
+                    app.people_list
+                        .cache_people
+                        .iter()
+                        .filter(|(person, _)| {
+                            person.metadata_created_at.is_none()
+                                || person.metadata_last_received < (now - stale).0
+                        })
+                        .map(|(person, _)| person.pubkey)
+                        .collect()
+                };
+
+                if !stale_metadata_pubkeys.is_empty() {
+                    if widgets::Button::primary(
+                        &app.theme,
+                        format!("Refresh All Metadata ({})", stale_metadata_pubkeys.len()),
+                    )
+                    .show(ui)
+                    .clicked()
+                    {
+                        let _ = GLOBALS.to_overlord.send(
+                            ToOverlordMessage::UpdateMetadataInBulk(stale_metadata_pubkeys),
+                        );
+                    }
+                    btn_h_space!(ui);
+                }
+            }
+
             if widgets::Button::primary(&app.theme, "View the Feed")
                 .show(ui)
                 .clicked()
