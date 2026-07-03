@@ -303,11 +303,12 @@ fn offer_export_priv_key(app: &mut GossipUi, ui: &mut Ui) {
         });
         match result {
             Ok((mut bech32, _)) => {
-                println!("Exported private key (bech32): {}", bech32);
+                ui.output_mut(|o| o.commands.push(egui::OutputCommand::CopyText(bech32.clone())));
                 bech32.zeroize();
-                GLOBALS.status_queue.write().write(
-                    "Exported key has been printed to the console standard output.".to_owned(),
-                );
+                GLOBALS
+                    .status_queue
+                    .write()
+                    .write("Exported key has been copied to the clipboard.".to_owned());
             }
             Err(e) => GLOBALS.status_queue.write().write(format!("{}", e)),
         }
@@ -323,11 +324,12 @@ fn offer_export_priv_key(app: &mut GossipUi, ui: &mut Ui) {
         });
         match result {
             Ok((mut hex, _)) => {
-                println!("Exported private key (hex): {}", hex);
+                ui.output_mut(|o| o.commands.push(egui::OutputCommand::CopyText(hex.clone())));
                 hex.zeroize();
-                GLOBALS.status_queue.write().write(
-                    "Exported key has been printed to the console standard output.".to_owned(),
-                );
+                GLOBALS
+                    .status_queue
+                    .write()
+                    .write("Exported key has been copied to the clipboard.".to_owned());
             }
             Err(e) => GLOBALS.status_queue.write().write(format!("{}", e)),
         }
