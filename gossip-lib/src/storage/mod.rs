@@ -712,6 +712,7 @@ impl Storage {
     def_setting!(load_avatars, b"load_avatars", bool, true);
     def_setting!(enable_identicon, b"enable_identicon", bool, true);
     def_setting!(load_media, b"load_media", bool, false);
+    def_setting!(image_proxy_url, b"image_proxy_url", String, String::new());
     def_setting!(check_nip05, b"check_nip05", bool, true);
     def_setting!(wgpu_renderer, b"wgpu_renderer", bool, false);
     def_setting!(
