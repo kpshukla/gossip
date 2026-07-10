@@ -229,6 +229,11 @@ pub async fn init(rapid: bool, command_mode: bool) -> Result<(), Error> {
         .storage
         .set(storage)
         .expect("Storage attempted to be setup twice!");
+    if !command_mode {
+        // So a future compaction (in another process, or a future run of this one)
+        // can tell this instance is (or was) using the database.
+        Storage::register_running_pid()?;
+    }
     GLOBALS.db().init().await?;
 
     // Load user identity
