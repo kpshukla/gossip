@@ -41,6 +41,7 @@ pub struct UnsavedSettings {
     pub load_avatars: bool,
     pub enable_identicon: bool,
     pub load_media: bool,
+    pub image_proxy_url: String,
     pub check_nip05: bool,
     pub automatically_fetch_metadata: bool,
     pub relay_connection_requires_approval: bool,
@@ -145,6 +146,7 @@ impl Default for UnsavedSettings {
             load_avatars: default_setting!(load_avatars),
             enable_identicon: default_setting!(enable_identicon),
             load_media: default_setting!(load_media),
+            image_proxy_url: default_setting!(image_proxy_url),
             check_nip05: default_setting!(check_nip05),
             automatically_fetch_metadata: default_setting!(automatically_fetch_metadata),
             relay_connection_requires_approval: default_setting!(
@@ -245,6 +247,7 @@ impl UnsavedSettings {
             load_avatars: load_setting!(load_avatars),
             enable_identicon: load_setting!(enable_identicon),
             load_media: load_setting!(load_media),
+            image_proxy_url: load_setting!(image_proxy_url),
             check_nip05: load_setting!(check_nip05),
             automatically_fetch_metadata: load_setting!(automatically_fetch_metadata),
             relay_connection_requires_approval: load_setting!(relay_connection_requires_approval),
@@ -337,6 +340,7 @@ impl UnsavedSettings {
         save_setting!(load_avatars, self, txn);
         save_setting!(enable_identicon, self, txn);
         save_setting!(load_media, self, txn);
+        save_setting!(image_proxy_url, self, txn);
         save_setting!(check_nip05, self, txn);
         save_setting!(automatically_fetch_metadata, self, txn);
         save_setting!(relay_connection_requires_approval, self, txn);

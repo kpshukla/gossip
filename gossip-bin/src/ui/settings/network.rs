@@ -101,6 +101,18 @@ pub(super) fn update(app: &mut GossipUi, ctx: &Context, _frame: &mut eframe::Fra
     ui.add_space(10.0);
 
     ui.horizontal(|ui| {
+        ui.label("HTTP Proxy (for images, avatars, and other non-relay fetches)");
+        ui.add(text_edit_line!(app, app.unsaved_settings.image_proxy_url).desired_width(240.0));
+        reset_button!(app, ui, image_proxy_url);
+    })
+    .response
+    .on_hover_text(
+        "e.g. socks5://127.0.0.1:9050 for Tor, or your VPN's local proxy port. \
+         Leave blank to fetch directly. Does not affect relay (websocket) connections. \
+         Takes effect on restart.",
+    );
+
+    ui.horizontal(|ui| {
         ui.label("HTTP Connect Timeout");
         ui.add(
             Slider::new(

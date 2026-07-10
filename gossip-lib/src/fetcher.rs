@@ -412,15 +412,19 @@ impl Fetcher {
             std::time::Duration::new(GLOBALS.db().read_setting_fetcher_connect_timeout_sec(), 0);
         let timeout = std::time::Duration::new(GLOBALS.db().read_setting_fetcher_timeout_sec(), 0);
 
-        *self.client.write().unwrap() = Some(
-            Client::builder()
-                .gzip(true)
-                .brotli(true)
-                .deflate(true)
-                .connect_timeout(connect_timeout)
-                .timeout(timeout)
-                .build()?,
-        );
+        let mut builder = Client::builder()
+            .gzip(true)
+            .brotli(true)
+            .deflate(true)
+            .connect_timeout(connect_timeout)
+            .timeout(timeout);
+
+        let proxy_url = GLOBALS.db().read_setting_image_proxy_url();
+        if !proxy_url.is_empty() {
+            builder = builder.proxy(reqwest::Proxy::all(&proxy_url)?);
+        }
+
+        *self.client.write().unwrap() = Some(builder.build()?);
 
         Ok(())
     }
