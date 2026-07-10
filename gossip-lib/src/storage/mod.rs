@@ -154,7 +154,48 @@ impl Storage {
         })
     }
 
+    /// Records that this process is the one using the LMDB at `Profile::lmdb_dir()`.
+    /// [`compact`](Self::compact) checks this to avoid rewriting the database out from
+    /// under another running instance (which manipulates the files directly, outside of
+    /// LMDB's own transactional guarantees, and is not safe to do concurrently).
+    pub(crate) fn register_running_pid() -> Result<(), Error> {
+        let lmdb_dir = Profile::lmdb_dir()?;
+        let pid_file = lmdb_dir.join("gossip.pid");
+        fs::write(pid_file, std::process::id().to_string())?;
+        Ok(())
+    }
+
+    /// Whether some *other*, still-alive process last recorded itself (via
+    /// [`register_running_pid`](Self::register_running_pid)) as using this LMDB.
+    fn other_instance_running() -> bool {
+        let lmdb_dir = match Profile::lmdb_dir() {
+            Ok(d) => d,
+            Err(_) => return false,
+        };
+        let pid_file = lmdb_dir.join("gossip.pid");
+        let pid: sysinfo::Pid = match fs::read_to_string(pid_file) {
+            Ok(contents) => match contents.trim().parse() {
+                Ok(pid) => pid,
+                Err(_) => return false,
+            },
+            Err(_) => return false,
+        };
+        if pid.as_u32() == std::process::id() {
+            return false;
+        }
+        let mut system = sysinfo::System::new();
+        system.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[pid]), true);
+        system.process(pid).is_some()
+    }
+
     pub(crate) fn compact() -> Result<(), Error> {
+        if Self::other_instance_running() {
+            tracing::warn!(
+                "Another gossip process appears to already be using this database. Skipping compaction to avoid corrupting it."
+            );
+            return Ok(());
+        }
+
         let lmdb_dir = Profile::lmdb_dir()?;
 
         let stamp = {
